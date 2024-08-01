@@ -1,0 +1,117 @@
+### Exemples ou en attente
+
+## AJOUT dépôt COPR pour lecteur d'empreinte digitale
+if check_copr 'manciukic/libfprint-tod-goodix'
+then
+	echo -n "- - - Activation COPR manciukic/libfprint-tod-goodix : "
+	add_copr "manciukic/libfprint-tod-goodix"
+    check_cmd
+fi
+
+## MESA-VA
+if check_pkg "mesa-va-drivers"
+then
+	echo -n "- - - Swapping MESA VAAPI : "
+	swap_pkg "mesa-va-drivers" "mesa-va-drivers-freeworld"
+	check_cmd
+fi
+
+## MESA-VDPAU
+if check_pkg "mesa-vdpau-drivers"
+then
+	echo -n "- - - Swapping MESA VDPAU : "
+	swap_pkg "mesa-vdpau-drivers" "mesa-vdpau-drivers-freeworld"
+	check_cmd
+fi
+
+### Vérif configuration système
+echo "11- Configuration personnalisée du système"
+SYSCTLFIC="/etc/sysctl.d/adrien.conf"
+if [[ ! -e "$SYSCTLFIC" ]]
+then
+	echo -n "- - - Création du fichier $SYSCTLFIC : "
+	touch "$SYSCTLFIC"
+	check_cmd
+fi
+if [[ $(grep -c 'vm.swappiness' "$SYSCTLFIC") -lt 1 ]]
+then
+	echo -n "- - - Définition du swapiness à 10 : "
+	echo "vm.swappiness = 10" >> "$SYSCTLFIC"
+	check_cmd
+fi
+if [[ $(grep -c 'kernel.sysrq' "$SYSCTLFIC") -lt 1 ]]
+then
+	echo -n "- - - Définition des sysrq à 1 : "
+	echo "kernel.sysrq = 1" >> "$SYSCTLFIC"
+	check_cmd
+fi
+
+PROFILEFIC="/etc/profile.d/adrien.sh"
+if [[ ! -e "$PROFILEFIC" ]]
+then
+        echo -n "- - - Création du fichier $PROFILEFIC : "
+        touch "$PROFILEFIC"
+        check_cmd
+fi
+if [[ $(grep -c 'QT_QPA_PLATFORMTHEME=' "$PROFILEFIC") -lt 1 ]]
+then
+	echo -n "- - - Définition du thème des applis KDE à gnome : "
+	echo "export QT_QPA_PLATFORMTHEME=gnome" >> "$PROFILEFIC"
+	check_cmd
+fi
+if [[ $(grep -c 'QT_QPA_PLATFORM=' "$PROFILEFIC") -lt 1 ]]
+then
+	echo -n "- - - Fix du décalage des menus des applis Qt sous Wayland : "
+	echo "export QT_QPA_PLATFORM=xcb" >> "$PROFILEFIC"
+	check_cmd
+fi
+
+if ! check_pkg "pigz"
+then
+	echo -n "- - - Installation pigz : "
+	add_pkg "pigz"
+	check_cmd
+fi
+if [[ ! -e /usr/local/bin/gzip ]]
+then
+	echo -n "- - - Configuration gzip multithread : "
+	ln -s /usr/bin/pigz /usr/local/bin/gzip
+	check_cmd
+fi
+if [[ ! -e /usr/local/bin/gunzip ]]
+then
+	echo -n "- - - Configuration gunzip multithread : "
+	ln -s /usr/local/bin/gzip /usr/local/bin/gunzip
+	check_cmd
+fi
+if [[ ! -e /usr/local/bin/zcat ]]
+then
+	echo -n "- - - Configuration zcat multithread : "
+	ln -s /usr/local/bin/gzip /usr/local/bin/zcat
+	check_cmd
+fi
+
+if ! check_pkg "lbzip2"
+then
+	echo -n "- - - Installation lbzip2 : "
+	add_pkg "lbzip2"
+	check_cmd
+fi
+if [[ ! -e /usr/local/bin/bzip2 ]]
+then
+	echo -n "- - - Configuration bzip2 multithread : "
+	ln -s /usr/bin/lbzip2 /usr/local/bin/bzip2
+	check_cmd
+fi
+if [[ ! -e /usr/local/bin/bunzip2 ]]
+then
+	echo -n "- - - Configuration bunzip2 multithread : "
+	ln -s /usr/local/bin/bzip2 /usr/local/bin/bunzip2
+	check_cmd
+fi
+if [[ ! -e /usr/local/bin/bzcat ]]
+then
+	echo -n "- - - Configuration bzcat multithread : "
+	ln -s /usr/local/bin/bzip2 /usr/local/bin/bzcat
+	check_cmd
+fi

@@ -1,0 +1,7 @@
+#add:packagename
+#del:packagename
+
+add:org.keepassxc.KeePassXC
+add:com.mattjakeman.ExtensionManager
+add:org.mozilla.Thunderbird
+add:org.onlyoffice.desktopeditors

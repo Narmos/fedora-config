@@ -1,0 +1,30 @@
+#add:packagename
+#del:packagename
+
+# CLI
+add:fastfetch
+add:git
+
+# GUI
+del:cheese
+add:code
+add:dconf-editor
+add:filezilla
+add:gimp
+add:inkscape
+del:gnome-boxes
+del:gnome-calendar
+del:gnome-contacts
+del:gnome-maps
+del:gnome-photos
+del:gnome-tour
+add:gnome-tweaks
+del:gnome-weather
+del:mediawriter
+del:rhythmbox
+del:snapshot
+del:totem
+add:vlc
+
+# GUI CUSTOM
+add:yaru-theme
