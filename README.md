@@ -55,6 +55,6 @@ Le script lancé va effectuer les opérations suivantes :
 
 
 
-## Crédits
+# Crédits
 
 Ce script est basé sur [celui](https://github.com/aaaaadrien/fedora-config) d'Adrien de [linuxtricks.fr](https://www.linuxtricks.fr)
