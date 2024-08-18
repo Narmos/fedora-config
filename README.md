@@ -21,7 +21,7 @@ Ma configuration de Fedora (base Fedora Workstation). Configure & met à jour Fe
 
 Les 3 fichiers mentionnés ci-dessus doivent être dans le même dossier.
 
-Exécuter avec les droits de super-utilisateur le scipt principal :
+Exécuter avec les droits de super-utilisateur le script principal :
 
     sudo ./config-fedora.sh
 
