@@ -46,7 +46,7 @@ Le script lancé va effectuer les opérations suivantes :
     - Mettre à jour les paquets Flatpak + *Proposition de redémarrage du système si nécessaire*
 - Ajouter les dépôts additionnels RPM / Flatpak
 - Ajouter les composants utiles en provenance de RPM Fusion
-- Ajouter ou Supprimer les paquets DEB paramétrés dans le fichier packages.list
+- Ajouter ou Supprimer les paquets RPM paramétrés dans le fichier packages.list
 - Ajouter ou Supprimer les paquets Flatpak paramétrés dans le fichier flatpak.list
 - Personnaliser la configuration du système + *Proposition de redémarrage du système si nécessaire*
 
