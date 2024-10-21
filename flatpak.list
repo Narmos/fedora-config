@@ -3,6 +3,10 @@
 
 add:org.onlyoffice.desktopeditors
 add:com.mattjakeman.ExtensionManager
+add:com.github.tchx84.Flatseal
 add:it.mijorus.gearlever
+add:org.gimp.GIMP
+add:org.inkscape.Inkscape
 add:org.keepassxc.KeePassXC
 add:org.mozilla.Thunderbird
+add:org.videolan.VLC

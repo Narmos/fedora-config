@@ -2,9 +2,9 @@
 
 Ma configuration de Fedora (base Fedora Workstation). Configure & met à jour Fedora
 
+Versions testées : 40
+
 **Ne fonctionne qu'avec Fedora Workstation disposant de l'environnement de bureau GNOME.**
-
-
 
 # Guide
 
@@ -16,10 +16,9 @@ Ma configuration de Fedora (base Fedora Workstation). Configure & met à jour Fe
 
  **flatpak.list** : Fichier de flatpak à ajouter ou retirer du système
 
-
 ## Fonctionnement
 
-Les 3 fichiers mentionnés ci-dessus doivent être dans le même dossier.
+Les fichiers mentionnés ci-dessus doivent être dans le même dossier.
 
 Exécuter avec les droits de super-utilisateur le script principal :
 
@@ -35,25 +34,21 @@ Il est possible de faire uniquement une vérification des mises à jour (listing
 
     sudo ./config-fedora.sh check
 
-
-
 ## Opérations réalisées par le script
 
 Le script lancé va effectuer les opérations suivantes : 
 
- 1. Personnaliser la configuration de dnf
- 2. Mettre à jour les paquets rpm
- 3. Mettre à jour les paquets flatpak + *Proposition de redémarrage du système si nécessaire*
- 4. Ajouter les dépôts additionnels au système
- 5. Ajouter les composants utiles en provenance de RPM Fusion
- 6. Permuter certains composants du système par ceux de RPM Fusion
- 7. Ajouter tous les codec en provenance de RPM Fusion
- 8. Ajouter les composants indispensables de GNOME
- 9. Ajouter ou Supprimer les paquets rpm paramétrés dans le fichier packages.list
- 10. Ajouter ou Supprimer les paquets flatpak paramétrés dans le fichier flatpak.list 
- 11. Personnaliser la configuration du système + *Proposition de redémarrage du système si nécessaire*
-
-
+- Configurer le système DNF
+    - Modifier la configuration DNF
+    - Mettre à jour les paquets RPM
+- Configurer le système Flatpak *(si activer)*
+    - Installer les paquets requis pour Flatpak
+    - Mettre à jour les paquets Flatpak + *Proposition de redémarrage du système si nécessaire*
+- Ajouter les dépôts additionnels RPM / Flatpak
+- Ajouter les composants utiles en provenance de RPM Fusion
+- Ajouter ou Supprimer les paquets DEB paramétrés dans le fichier packages.list
+- Ajouter ou Supprimer les paquets Flatpak paramétrés dans le fichier flatpak.list
+- Personnaliser la configuration du système + *Proposition de redémarrage du système si nécessaire*
 
 # Crédits
 

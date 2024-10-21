@@ -6,25 +6,28 @@ add:fastfetch
 add:git
 
 # GUI
-del:cheese
 add:code
-add:dconf-editor
 add:filezilla
-add:gimp
-add:inkscape
+del:mediawriter
+
+# GNOME
+add:dconf-editor
+add:gnome-shell-extension-appindicator
+add:gnome-shell-extension-dash-to-dock
+add:gnome-tweaks
+
+# Remove default GNOME apps
+del:cheese
 del:gnome-boxes
 del:gnome-calendar
 del:gnome-contacts
 del:gnome-maps
 del:gnome-photos
 del:gnome-tour
-add:gnome-tweaks
 del:gnome-weather
-del:mediawriter
 del:rhythmbox
 del:snapshot
 del:totem
-add:vlc
 
 # GUI CUSTOM
 add:yaru-theme

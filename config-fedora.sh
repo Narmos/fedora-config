@@ -1,161 +1,141 @@
-#! /usr/bin/env bash
+#!/usr/bin/env bash
 
 #################
 ### VARIABLES ###
 #################
-RPMFUSIONCOMP="rpmfusion-free-appstream-data rpmfusion-nonfree-appstream-data rpmfusion-free-release-tainted rpmfusion-nonfree-release-tainted"
-CODEC="gstreamer1-plugins-base gstreamer1-plugins-good gstreamer1-plugins-bad-free gstreamer1-plugins-good-extras gstreamer1-plugins-bad-free-extras gstreamer1-plugins-ugly-free gstreamer1-plugin-libav gstreamer1-plugins-ugly libdvdcss gstreamer1-plugin-openh264"
-GNOMECOMP="gnome-shell-extension-dash-to-dock gnome-shell-extension-appindicator"
 CURRENTPATH=$(dirname "$0")
+DNFVERSION="$(readlink $(which dnf))"
 LOGFILE="/tmp/config-fedora.log"
-#####################
-### FIN VARIABLES ###
-#####################
-
+RPMFUSIONCOMP="rpmfusion-free-appstream-data rpmfusion-nonfree-appstream-data rpmfusion-free-release-tainted rpmfusion-nonfree-release-tainted"
 
 #################
 ### FONCTIONS ###
 #################
-check_cmd()
-{
-	if [[ $? -eq 0 ]]
-	then
-			echo -e "\033[32mOK\033[0m"
+check_cmd() {
+	if [[ $? -eq 0 ]]; then
+			#echo -e "\033[32mOK\033[0m"
+			echo -e "\033[32m\xE2\x9C\x94\033[0m" # vu vert
 	else
-			echo -e "\033[31mERREUR\033[0m"
+			#echo -e "\033[31mERREUR\033[0m"
+			echo -e "\033[31m\xE2\x9D\x8C\033[0m" # croix rouge
 	fi
 }
 
-refresh_rpm_cache()
-{
+refresh_rpm_cache() {
 	dnf check-update --refresh fedora-release > /dev/null 2>&1
 }
 
-check_rpm_repo()
-{
-	if [[ -e "/etc/yum.repos.d/$1" ]]
-	then
+check_rpm_repo() {
+	if [[ -e "/etc/yum.repos.d/$1" ]]; then
 		return 0
 	else
 		return 1
 	fi
 }
 
-check_rpm_updates()
-{
+check_rpm_updates() {
 	yes n | dnf upgrade
 }
 
-check_rpm_pkg()
-{
-	rpm -q "$1" > /dev/null
+check_rpm_pkg() {
+	rpm -q "$1" > /dev/null 2>&1
 }
 
-add_rpm_pkg()
-{
+add_rpm_pkg() {
 	dnf install -y --nogpgcheck "$1" >> "$LOGFILE" 2>&1
 }
 
-del_rpm_pkg()
-{
-	dnf autoremove -y "$1" >> "$LOGFILE" 2>&1
+del_rpm_pkg() {
+	if [[ "${DNFVERSION}" == "dnf-3" ]]; then
+		dnf autoremove -y "$1" >> "$LOGFILE" 2>&1
+	fi
+
+	if [[ "${DNFVERSION}" == "dnf5" ]]; then
+		dnf remove -y "$1" >> "$LOGFILE" 2>&1
+	fi
 }
 
-swap_rpm_pkg()
-{
+swap_rpm_pkg() {
 	dnf swap -y "$1" "$2" --allowerasing > /dev/null 2>&1
 }
 
-check_copr_repo()
-{
-	COPR_ENABLED=$(dnf copr list --enabled | grep -c "$1")
+check_copr_repo() {
+	if [[ ${DNFVERSION} == "dnf-3" ]]; then
+		COPR_ENABLED=$(dnf copr list --enabled | grep -c "$1")
+	fi
+
+	if [[ ${DNFVERSION} == "dnf5" ]]; then
+		COPR_ENABLED=$(dnf copr list | grep -v '(disabled)' | grep -c "$1")
+	fi
+	
 	return $COPR_ENABLED
 }
 
-add_copr_repo()
-{
+add_copr_repo() {
 	dnf copr enable -y "$1" > /dev/null 2>&1
 }
 
-check_flatpak_updates()
-{
+check_flatpak_updates() {
 	yes n | flatpak update
 }
 
-check_flatpak_pkg()
-{
+check_flatpak_pkg() {
 	flatpak info "$1" > /dev/null 2>&1
 }
 
-add_flatpak_pkg()
-{
+add_flatpak_pkg() {
 	flatpak install flathub --noninteractive -y "$1" > /dev/null 2>&1
 }
 
-del_flatpak_pkg()
-{
-	flatpak uninstall --noninteractive -y "$1" > /dev/null && flatpak uninstall --unused  --noninteractive -y > /dev/null
+del_flatpak_pkg() {
+	flatpak uninstall --noninteractive -y "$1" > /dev/null 2>&1
+	flatpak uninstall --unused  --noninteractive -y > /dev/null 2>&1
 }
 
-need_reboot()
-{
-	needs-restarting -r >> "$LOGFILE" 2>&1
+need_reboot() {
+	if [[ ${DNFVERSION} == "dnf-3" ]]; then
+		needs-restarting -r >> "$LOGFILE" 2>&1
+		NEEDRESTART="$?"
+	fi
+
+	if [[ ${DNFVERSION} == "dnf5" ]]; then
+		dnf needs-restarting -r >> "$LOGFILE" 2>&1
+		NEEDRESTART="$?"
+	fi
+
+	return $NEEDRESTART
 }
 
-ask_reboot()
-{
-	echo -n -e "\033[5;33m/\ REDÉMARRAGE NÉCESSAIRE\033[0m\033[33m : Voulez-vous redémarrer le système maintenant ? [y/N] : \033[0m"
+ask_reboot() {
+	echo -n -e "\033[5;33m/\ REDÉMARRAGE NÉCESSAIRE\033[0m\033[33m : Voulez-vous redémarrer le système maintenant ? [o/N] : \033[0m"
 	read rebootuser
 	rebootuser=${rebootuser:-n}
-	if [[ ${rebootuser,,} == "y" ]]
-	then
+	if [[ ${rebootuser,,} =~ ^[oOyY]$ ]]; then
 		echo -e "\n\033[0;35m Reboot via systemd ... \033[0m"
 		sleep 2
 		systemctl reboot
 		exit
 	fi
-	if [[ ${rebootuser,,} == "k" ]]
-	then
-		kexec_reboot
-	fi
 }
 
-kexec_reboot()
-{
-	echo -e "\n\033[1;4;31mEXPERIMENTAL :\033[0;35m Reboot via kexec ... \033[0m"	
-	LASTKERNEL=$(rpm -q kernel --qf "%{INSTALLTIME} %{VERSION}-%{RELEASE}.%{ARCH}\n" | sort -nr | awk 'NR==1 {print $2}')
-	kexec -l /boot/vmlinuz-$LASTKERNEL --initrd=/boot/initramfs-$LASTKERNEL.img --reuse-cmdline
-	sleep 0.5
-	# kexec -e
-	systemctl kexec
-	exit
-}
-
-ask_update()
-{
-	echo -n -e "\n\033[36mVoulez-vous lancer les MàJ maintenant ? [y/N] : \033[0m"
+ask_update() {
+	echo -n -e "\n\033[36mVoulez-vous lancer les MàJ maintenant ? [o/N] : \033[0m"
 	read startupdate
 	startupdate=${startupdate:-n}
-	echo ""
-	if [[ ${startupdate,,} == "y" ]]
-	then
+	echo
+	if [[ ${startupdate,,} =~ ^[oOyY]$ ]]; then
+		clear -x
 		bash "$0"
 	fi
 }
-#####################
-### FIN FONCTIONS ###
-#####################
-
 
 ####################
 ### DEBUT SCRIPT ###
 ####################
 ### VERIF option du script
-if [[ -z "$1" ]]
-then
+if [[ -z "$1" ]]; then
 	echo "OK" > /dev/null
-elif [[ "$1" == "check" ]]
-then
+elif [[ "$1" == "check" ]]; then
 	echo "OK" > /dev/null
 else
 	echo "Usage incorrect du script :"
@@ -165,121 +145,119 @@ else
 fi
 
 ### VERIF si root
-if [[ $(id -u) -ne "0" ]]
-then
+if [[ $(id -u) -ne "0" ]]; then
 	echo -e "\033[31mERREUR\033[0m Lancer le script avec les droits root (su - root ou sudo)"
 	exit 1;
 fi
 
 ### VERIF si bien Fedora Workstation
-if ! check_rpm_pkg fedora-release-workstation
-then
+if ! check_rpm_pkg fedora-release-workstation; then
 	echo -e "\033[31mERREUR\033[0m Seule Fedora Workstation (GNOME) est supportée !"
 	exit 2;
+fi
+
+### VERIF MàJ si option "check"
+if [[ "$1" = "check" ]]; then
+	echo
+	echo -e -n "\033[1mRefresh du cache DNF \033[0m"
+	refresh_rpm_cache
+	check_cmd
+
+	echo -e "\033[1mMises à jour disponibles RPM : \033[0m"
+	check_rpm_updates
+
+	echo
+
+	echo -e "\033[1mMises à jour disponibles Flatpak : \033[0m"
+	check_flatpak_updates
+
+	ask_update
+	exit;
 fi
 
 ### INFOS fichier log
 echo -e "\033[36m"
 echo "Pour suivre la progression des mises à jour : tail -f $LOGFILE"
 echo -e "\033[0m"
-
 ## Date dans le log
 echo '-------------------' >> "$LOGFILE"
 date >> "$LOGFILE"
 
-### VERIF MàJ si option "check"
-if [[ "$1" = "check" ]]
-then
-	echo -n "01- - Refresh du cache : "
-	refresh_rpm_cache
-	check_cmd
-
-	echo "02- - Mises à jour disponibles RPM : "
-	check_rpm_updates
-
-	echo "03- - Mises à jour disponibles Flatpak : "
-	check_flatpak_updates
-
-	ask_update
-
-	exit;
-fi
-
 ### CONFIG système DNF
-echo "01- Vérification de la configuration DNF"
-if [[ $(grep -c 'fastestmirror=' /etc/dnf/dnf.conf) -lt 1 ]]
-then
-	echo -n "- - - Correction miroirs rapides : "
+echo -e "\033[1mConfiguration du système DNF\033[0m"
+
+if [[ $(grep -c 'fastestmirror=' /etc/dnf/dnf.conf) -lt 1 ]]; then
+	echo -e -n " \xE2\x86\xB3 Configuration miroirs rapides "
 	echo "fastestmirror=true" >> /etc/dnf/dnf.conf
 	check_cmd
 fi
-if [[ $(grep -c 'max_parallel_downloads=' /etc/dnf/dnf.conf) -lt 1 ]]
-then
-	echo -n "- - - Correction téléchargements parallèles : "
+
+if [[ $(grep -c 'max_parallel_downloads=' /etc/dnf/dnf.conf) -lt 1 ]]; then
+	echo -e -n " \xE2\x86\xB3 Configuration téléchargements parallèles "
 	echo "max_parallel_downloads=10" >> /etc/dnf/dnf.conf
 	check_cmd
 fi
-if [[ $(grep -c 'countme=' /etc/dnf/dnf.conf) -lt 1 ]]
-then
-	echo -n "- - - Correction statistiques : "
+
+if [[ $(grep -c 'countme=' /etc/dnf/dnf.conf) -lt 1 ]]; then
+	echo -e -n " \xE2\x86\xB3 Configuration statistiques "
 	echo "countme=false" >> /etc/dnf/dnf.conf
 	check_cmd
 fi
-if [[ $(grep -c 'deltarpm=' /etc/dnf/dnf.conf) -lt 1 ]]
-then
-        echo -n "- - - Correction deltarpm désactivés : "
+
+if [[ $(grep -c 'deltarpm=' /etc/dnf/dnf.conf) -lt 1 ]]; then
+        echo -e -n " \xE2\x86\xB3 Configuration deltarpm "
         echo "deltarpm=false" >> /etc/dnf/dnf.conf
         check_cmd
 fi
 
-echo -n "- - - Refresh du cache : "
+echo -e -n " \xE2\x86\xB3 Refresh du cache "
 refresh_rpm_cache
 check_cmd
 
 if ! check_rpm_pkg "dnf-utils"
 then
-	echo -n "- - - Installation dnf-utils : "
+	echo -e -n " \xE2\x86\xB3 Installation de dnf-utils "
 	add_rpm_pkg "dnf-utils"
 	check_cmd
 fi
 
-### MAJ des paquets RPM
-echo -n "02- Mise à jour du système DNF : "
+## MAJ des paquets RPM
+echo -e -n " \xE2\x86\xB3 Mise à jour des paquets RPM "
 dnf upgrade -y >> "$LOGFILE" 2>&1
 check_cmd
 
-### MAJ des paquets Flatpak
-echo -n "03- Mise à jour du système Flatpak : "
+### CONFIG système Flatpak
+echo -e "\033[1mConfiguration du système Flatpak\033[0m"
+
+## MAJ des paquets Flatpak
+echo -e -n " \xE2\x86\xB3 Mise à jour des paquets Flatpak "
 flatpak update --noninteractive >> "$LOGFILE"  2>&1
 check_cmd
 
 ### VERIF si reboot nécessaire
-if ! need_reboot
-then
+if ! need_reboot; then
 	ask_reboot
 fi
 
 ### CONFIG des dépôts
-echo "04- Vérification configuration des dépôts"
+echo -e "\033[1mConfiguration des dépôts\033[0m"
 
 ## AJOUT dépôts RPM Fusion
-if ! check_rpm_pkg rpmfusion-free-release
-then
-	echo -n "- - - Installation RPM Fusion Free : "
+if ! check_rpm_pkg rpmfusion-free-release; then
+	echo -e -n " \xE2\x86\xB3 Installation de RPM Fusion Free "
 	add_rpm_pkg "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm"
 	check_cmd
 fi
-if ! check_rpm_pkg rpmfusion-nonfree-release
-then
-	echo -n "- - - Installation RPM Fusion Nonfree : "
+
+if ! check_rpm_pkg rpmfusion-nonfree-release; then
+	echo -e -n " \xE2\x86\xB3 Installation de RPM Fusion Nonfree "
 	add_rpm_pkg "https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm"
 	check_cmd
 fi
 
 ## AJOUT dépôt Visual Studio Code
-if ! check_rpm_repo vscode.repo
-then
-	echo -n "- - - Ajout dépôt Visual Studio Code : "
+if ! check_rpm_repo vscode.repo; then
+	echo -e -n " \xE2\x86\xB3 Ajout du dépôt RPM : Visual Studio Code "
 	echo "[Code]
 	name=Visual Studio Code
 	baseurl=https://packages.microsoft.com/yumrepos/vscode
@@ -291,82 +269,40 @@ then
 fi
 
 ## AJOUT dépôt Flathub
-if [[ $(flatpak remotes | grep -c flathub) -ne 1 ]]
-then
-	echo -n "- - - Ajout dépôt Flathub : "
+if [[ $(flatpak remotes | grep -c flathub) -ne 1 ]]; then
+	echo -e -n " \xE2\x86\xB3 Ajout du dépôt Flatpak : Flathub "
 	flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo > /dev/null
 	check_cmd
 fi
 
 ### INSTALL composants RPM Fusion
-echo "05- Vérification composants RPM Fusion"
-for p in $RPMFUSIONCOMP
-do
-	if ! check_rpm_pkg "$p"
-	then
-		echo -n "- - - Installation composant $p : "
-		add_rpm_pkg "$p"
-		check_cmd
-	fi
-done
+echo -e "\033[1mVérification des composants RPM Fusion\033[0m"
 
-### BASCULE des composants
-echo "06- Vérification swapping des composants"
-
-## FFmpeg
-if check_rpm_pkg "ffmpeg-free"
-then
-	echo -n "- - - Swapping ffmpeg : "
-	swap_rpm_pkg "ffmpeg-free" "ffmpeg" 
-	check_cmd
-fi
-
-### INSTALL des codecs
-echo "07- Vérification Codecs"
-for p in $CODEC
-do
-	if ! check_rpm_pkg "$p"
-	then
-		echo -n "- - - Installation codec $p : "
-		add_rpm_pkg "$p"
-		check_cmd
-	fi
-done
-
-### INSTALL composants GNOME
-echo "08- Vérification composants GNOME"
-for p in $GNOMECOMP
-do
-	if ! check_rpm_pkg "$p"
-	then
-		echo -n "- - - Installation composant $p : "
+for p in $RPMFUSIONCOMP; do
+	if ! check_rpm_pkg "$p"; then
+		echo -e -n " \xE2\x86\xB3 Installation du composant : $p "
 		add_rpm_pkg "$p"
 		check_cmd
 	fi
 done
 
 ### INSTALL/SUPPRESSION RPM
-echo "09- Gestion des paquets RPM"
+echo -e "\033[1mGestion des paquets RPM\033[0m"
 ## Selon packages.list
-while read -r line
-do
-	if [[ "$line" == add:* ]]
-	then
+while read -r line; do
+	if [[ "$line" == add:* ]]; then
 		p=${line#add:}
-		if ! check_rpm_pkg "$p"
-		then
-			echo -n "- - - Installation paquet $p : "
+		if ! check_rpm_pkg "$p"; then
+			echo -e -n " \xE2\x86\xB3 Installation du paquet : $p "
 			add_rpm_pkg "$p"
 			check_cmd
 		fi
 	fi
 	
-	if [[ "$line" == del:* ]]
-	then
+	if [[ "$line" == del:* ]]; then
 		p=${line#del:}
-		if check_rpm_pkg "$p"
-		then
-			echo -n "- - - Suppression paquet $p : "
+		if check_rpm_pkg "$p"; then
+			echo -e -n " \xE2\x86\xB3 Suppression du paquet : $p "
 			del_rpm_pkg "$p"
 			check_cmd
 		fi
@@ -374,47 +310,49 @@ do
 done < "$CURRENTPATH/packages.list"
 
 ## Hors packages.list
-if check_rpm_pkg "libreoffice-calc" || check_rpm_pkg "libreoffice-impress" || check_rpm_pkg "libreoffice-writer"
-then
-	echo -n "- - - Suppression paquets LibreOffice : "
-	dnf autoremove -y "libreoffice-*" >> "$LOGFILE" 2>&1
+if check_rpm_pkg "libreoffice-calc" || check_rpm_pkg "libreoffice-impress" || check_rpm_pkg "libreoffice-writer"; then
+	echo -e -n " \xE2\x86\xB3 Suppression des paquets : LibreOffice "
+
+	if [[ "${DNFVERSION}" == "dnf-3" ]]; then
+		dnf autoremove -y "libreoffice-*" >> "$LOGFILE" 2>&1
+	fi
+
+	if [[ "${DNFVERSION}" == "dnf5" ]]; then
+		dnf remove -y "libreoffice-*" >> "$LOGFILE" 2>&1
+	fi
+
 	check_cmd
 fi
 
 ### INSTALL/SUPPRESSION Flatpak
-echo "10- Gestion des paquets Flatpak"
+echo -e "\033[1mGestion des paquets Flatpak\033[0m"
 ## Selon flatpak.list
-while read -r line
-do
-	if [[ "$line" == add:* ]]
-	then
+while read -r line; do
+	if [[ "$line" == add:* ]]; then
 		p=${line#add:}
-		if ! check_flatpak_pkg "$p"
-		then
-			echo -n "- - - Installation Flatpak $p : "
+		if ! check_flatpak_pkg "$p"; then
+			echo -e -n " \xE2\x86\xB3 Installation du Flatpak : $p "
 			add_flatpak_pkg "$p"
 			check_cmd
 		fi
 	fi
 	
-	if [[ "$line" == del:* ]]
-	then
+	if [[ "$line" == del:* ]]; then
 		p=${line#del:}
-		if check_flatpak_pkg "$p"
-		then
-			echo -n "- - - Suppression Flatpak $p : "
+		if check_flatpak_pkg "$p"; then
+			echo -e -n " \xE2\x86\xB3 Suppression du Flatpak : $p "
 			del_flatpak_pkg "$p"
 			check_cmd
 		fi
 	fi
 done < "$CURRENTPATH/flatpak.list"
 
-### Vérif configuration système
-echo "11- Configuration personnalisée du système"
-echo -n "- - - Rien à faire pour l'instant"
+### CONFIG système
+echo -e "\033[1mConfiguration personnalisée du système\033[0m"
+
+echo
 
 ### VERIF si reboot nécessaire
-if ! need_reboot
-then
+if ! need_reboot; then
 	ask_reboot
 fi
